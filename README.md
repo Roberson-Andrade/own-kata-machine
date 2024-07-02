@@ -1,0 +1,1 @@
+# own-kata-machine
