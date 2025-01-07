@@ -1,9 +1,18 @@
 # own-kata-machine
 
-[x] Array List
-[x] Bubble sort
-[x] Binary search list
-[x] Maze Solver
+## Data structures
+
+[x] Array list
 [x] Stack
 [x] Queue
-[x] DFS in binary tree
+[x] Binary search tree
+
+## Algorithms
+
+[x] BFS in binary tree
+[x] Maze solver
+[x] Binary search in list
+
+## Sorting
+
+[x] Bubble sort
