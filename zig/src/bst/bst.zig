@@ -35,6 +35,12 @@ const Tree = struct {
     }
 
     pub fn find(self: *Tree, value: u8) ?*TreeNode {
+        const targetRef = Self.findRef(self, value);
+
+        return targetRef.*;
+    }
+
+    pub fn findRef(self: *Tree, value: u8) *?*TreeNode {
         var it = &self.head;
 
         while (it.*) |node| {
@@ -49,13 +55,57 @@ const Tree = struct {
             }
         }
 
-        return it.*;
+        return it;
+    }
+
+    pub fn remove(self: *Tree, value: u8) void {
+        self.removeRecursive(&self.head, value);
+    }
+
+    fn removeRecursive(self: *Tree, current: *?*TreeNode, value: u8) void {
+        const curr = current.* orelse return;
+
+        if (value > curr.value) {
+            removeRecursive(self, &curr.right, value);
+        } else {
+            removeRecursive(self, &curr.left, value);
+        }
+
+        if (curr.value == value) {
+            const isLeaf = curr.left == null and curr.right == null;
+
+            if (isLeaf) {
+                self.arena.allocator().destroy(curr);
+                current.* = null;
+                return;
+            }
+        }
     }
 
     pub fn contains(self: *Tree, value: u8) bool {
         const target = Self.find(self, value);
 
         return target != null;
+    }
+
+    pub fn max(self: *Tree) ?*TreeNode {
+        var target = self.head;
+
+        while (target != null and target.?.right != null) {
+            target = target.?.right;
+        }
+
+        return target;
+    }
+
+    pub fn min(self: *Tree) ?*TreeNode {
+        var target = self.head;
+
+        while (target != null and target.?.left != null) {
+            target = target.?.left;
+        }
+
+        return target;
     }
 
     fn createNode(self: *Tree, value: u8) !*TreeNode {
@@ -114,4 +164,37 @@ test "find" {
     try std.testing.expect(sut.find(5) != null);
     try std.testing.expect(sut.find(8) != null);
     try std.testing.expect(sut.find(1) == null);
+}
+
+test "max/min" {
+    var sut = Tree.init(testAlloc);
+    defer sut.deinit();
+
+    try sut.insert(10);
+    try sut.insert(5);
+    try sut.insert(8);
+    try sut.insert(4);
+    try sut.insert(1);
+    try sut.insert(12);
+
+    try std.testing.expect(sut.max().?.value == 12);
+    try std.testing.expect(sut.min().?.value == 1);
+}
+
+test "Remove" {
+    var sut = Tree.init(testAlloc);
+    defer sut.deinit();
+
+    try sut.insert(10);
+    try sut.insert(5);
+    try sut.insert(8);
+    try sut.insert(4);
+    try sut.insert(1);
+    try sut.insert(12);
+
+    try std.testing.expect(sut.find(12).?.value == 12);
+
+    sut.remove(12);
+
+    try std.testing.expect(sut.find(12) == null);
 }
