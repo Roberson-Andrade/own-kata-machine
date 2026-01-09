@@ -58,28 +58,37 @@ const Tree = struct {
         return it;
     }
 
-    pub fn remove(self: *Tree, value: u8) void {
-        self.removeRecursive(&self.head, value);
+    pub fn delete(self: *Tree, value: u8) void {
+        _ = self.deleteRecursive(self.head, value);
     }
 
-    fn removeRecursive(self: *Tree, current: *?*TreeNode, value: u8) void {
-        const curr = current.* orelse return;
+    fn deleteRecursive(self: *Tree, current: ?*TreeNode, value: u8) ?*TreeNode {
+        const curr = current orelse return null;
 
         if (value > curr.value) {
-            removeRecursive(self, &curr.right, value);
+            curr.right = deleteRecursive(self, curr.right, value);
+        } else if (value < curr.value) {
+            curr.left = deleteRecursive(self, curr.left, value);
         } else {
-            removeRecursive(self, &curr.left, value);
-        }
-
-        if (curr.value == value) {
             const isLeaf = curr.left == null and curr.right == null;
 
             if (isLeaf) {
                 self.arena.allocator().destroy(curr);
-                current.* = null;
-                return;
+                return null;
+            }
+
+            if (curr.left == null) {
+                self.arena.allocator().destroy(curr);
+                return curr.right;
+            }
+
+            if (curr.right == null) {
+                self.arena.allocator().destroy(curr);
+                return curr.left;
             }
         }
+
+        return curr;
     }
 
     pub fn contains(self: *Tree, value: u8) bool {
@@ -130,6 +139,14 @@ test "insert" {
     try sut.insert(1);
     try sut.insert(12);
 
+    //            10
+    //          /    \
+    //         5      12
+    //       /   \
+    //      4     8
+    //     /
+    //    1
+
     try std.testing.expectEqual(@as(u8, 10), sut.head.?.value);
     try std.testing.expectEqual(@as(u8, 5), sut.head.?.left.?.value);
     try std.testing.expectEqual(@as(u8, 8), sut.head.?.left.?.right.?.value);
@@ -146,6 +163,12 @@ test "contains" {
     try sut.insert(5);
     try sut.insert(8);
 
+    //        10
+    //       /
+    //      5
+    //       \
+    //        8
+
     try std.testing.expect(sut.contains(10));
     try std.testing.expect(sut.contains(5));
     try std.testing.expect(sut.contains(8));
@@ -159,6 +182,12 @@ test "find" {
     try sut.insert(10);
     try sut.insert(5);
     try sut.insert(8);
+
+    //        10
+    //       /
+    //      5
+    //       \
+    //        8
 
     try std.testing.expect(sut.find(10) != null);
     try std.testing.expect(sut.find(5) != null);
@@ -177,24 +206,47 @@ test "max/min" {
     try sut.insert(1);
     try sut.insert(12);
 
+    //            10
+    //          /    \
+    //         5      12
+    //       /   \
+    //      4     8
+    //     /
+    //    1
+
     try std.testing.expect(sut.max().?.value == 12);
     try std.testing.expect(sut.min().?.value == 1);
 }
 
-test "Remove" {
+test "Delete" {
     var sut = Tree.init(testAlloc);
     defer sut.deinit();
 
     try sut.insert(10);
     try sut.insert(5);
-    try sut.insert(8);
-    try sut.insert(4);
+    try sut.insert(15);
+    try sut.insert(3);
     try sut.insert(1);
-    try sut.insert(12);
+    try sut.insert(7);
+    try sut.insert(6);
+    try sut.insert(9);
+    try sut.insert(17);
 
-    try std.testing.expect(sut.find(12).?.value == 12);
+    //                10
+    //              /    \
+    //             5      15
+    //           /   \       \
+    //          3     7       17
+    //         /     / \
+    //        1     6   9
 
-    sut.remove(12);
+    // Delete leaf node
+    try std.testing.expect(sut.find(1).?.value == 1);
+    sut.delete(1);
+    try std.testing.expect(sut.find(1) == null);
 
-    try std.testing.expect(sut.find(12) == null);
+    // delete 1 child node
+    try std.testing.expect(sut.find(15).?.value == 15);
+    sut.delete(15);
+    try std.testing.expect(sut.find(15) == null);
 }
